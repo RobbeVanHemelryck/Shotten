@@ -296,15 +296,18 @@ function initializePopupAndListeners() {
     managePlayersBtn.addEventListener('click', () => {
         loadPlayersForManagement();
         playerManagementOverlay.style.display = 'flex';
+        document.body.classList.add('no-scroll'); // Scroll Lock
     });
 
     closeManagePlayersBtn.addEventListener('click', () => {
         playerManagementOverlay.style.display = 'none';
+        document.body.classList.remove('no-scroll'); // Unlock Scroll
     });
 
     playerManagementOverlay.addEventListener('click', (event) => {
         if (event.target === playerManagementOverlay) {
             playerManagementOverlay.style.display = 'none';
+            document.body.classList.remove('no-scroll'); // Unlock Scroll
         }
     });
 
@@ -322,9 +325,20 @@ function initializePopupAndListeners() {
 
             teams.forEach(team => {
                 const th = document.createElement('th');
-                th.textContent = team.name;
+                // Truncate name if mobile
+                if (window.innerWidth <= 600) {
+                    th.textContent = team.name.substring(0, 3);
+                    th.title = team.name; // Show full name on hover
+                } else {
+                    th.textContent = team.name;
+                }
                 playerTableHeaderRow.appendChild(th);
             });
+
+            // Add Delete Header (Empty)
+            const deleteTh = document.createElement('th');
+            deleteTh.style.width = '50px';
+            playerTableHeaderRow.appendChild(deleteTh);
 
             // Load Players
             const response = await fetch(`${BASE_URL}/api/Players`);
@@ -370,6 +384,20 @@ function initializePopupAndListeners() {
             teamCell.addEventListener('click', () => toggleTeamAssignment(player, team.id));
             tr.appendChild(teamCell);
         });
+
+        // Delete Cell
+        const deleteCell = document.createElement('td');
+        deleteCell.classList.add('delete-cell');
+        const deleteBtn = document.createElement('button');
+        deleteBtn.innerHTML = '&times;'; // Cross icon
+        deleteBtn.classList.add('delete-btn');
+        deleteBtn.title = 'Delete Player';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent row clicks
+            deletePlayer(player.id);
+        });
+        deleteCell.appendChild(deleteBtn);
+        tr.appendChild(deleteCell);
     }
 
     function createPlaceholderRow(tr) {
@@ -390,6 +418,10 @@ function initializePopupAndListeners() {
             const td = document.createElement('td');
             tr.appendChild(td);
         });
+
+        // Empty delete cell
+        const td = document.createElement('td');
+        tr.appendChild(td);
     }
 
     function enableNewPlayerInput(cell, tr) {
@@ -508,6 +540,25 @@ function initializePopupAndListeners() {
         } catch (error) {
             console.error('Error updating player:', error);
             alert('Failed to update player');
+        }
+    }
+
+    async function deletePlayer(playerId) {
+        if (confirm('Are you sure you want to delete this player?')) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/Players/${playerId}`, {
+                    method: 'DELETE',
+                });
+                if (response.ok) {
+                    loadPlayersForManagement();
+                    loadPlayers();
+                } else {
+                    alert('Failed to delete player');
+                }
+            } catch (error) {
+                console.error('Error deleting player:', error);
+                alert('Error deleting player');
+            }
         }
     }
 
