@@ -417,3 +417,90 @@ h2 {
     white-space: nowrap;
     border: 0;
 }
+/* Fullscreen Popup */
+.fullscreen-popup-content {
+    background-color: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 1000px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Table Styles */
+.table-container {
+    overflow-x: auto;
+}
+
+#player-management-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #333;
+}
+
+#player-management-table th,
+#player-management-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+#player-management-table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+}
+
+.name-cell {
+    cursor: pointer;
+    position: relative;
+}
+
+.name-cell:hover::after {
+    content: '✎';
+    position: absolute;
+    right: 10px;
+    opacity: 0.5;
+}
+
+.team-cell {
+    cursor: pointer;
+    text-align: center !important;
+    font-size: 1.2rem;
+    transition: background-color 0.2s;
+}
+
+.team-cell:hover {
+    background-color: #f0f0f0;
+}
+
+.team-check {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.inline-edit-input {
+    background: #fff;
+    border: 1px solid #007bff;
+    color: #333;
+    padding: 0.5rem;
+    border-radius: 4px;
+    width: 100%;
+    font-size: inherit;
+}

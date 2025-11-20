@@ -285,166 +285,101 @@ function initializePopupAndListeners() {
         }
     }
 
+
     // Player Management Popup
     const managePlayersBtn = document.getElementById('manage-players-btn');
-    const managePlayersPopup = document.getElementById('manage-players-popup');
-    const closeManagePlayersBtn = managePlayersPopup.querySelector('.close-popup-btn');
+    const playerManagementOverlay = document.getElementById('player-management-overlay');
+    const closeManagePlayersBtn = playerManagementOverlay.querySelector('.close-popup-btn');
     const addPlayerBtn = document.getElementById('add-player-btn');
-
-    // Player Editor Modal Elements
-    const playerEditorModal = document.getElementById('player-editor-modal');
-    const closePlayerEditorBtn = playerEditorModal.querySelector('.close-popup-btn');
-    const playerEditorForm = document.getElementById('player-editor-form');
-    const editorPlayerIdInput = document.getElementById('editor-player-id');
-    const editorPlayerNameInput = document.getElementById('editor-player-name');
-    const editorTeamsContainer = document.getElementById('editor-teams-container');
-    const cancelPlayerEditorBtn = document.getElementById('cancel-player-editor-btn');
+    const playerTableBody = document.getElementById('player-table-body');
+    const playerTableHeaderRow = document.getElementById('player-table-header-row');
 
     managePlayersBtn.addEventListener('click', () => {
         loadPlayersForManagement();
-        loadTeams();
-        managePlayersPopup.style.display = 'flex';
+        playerManagementOverlay.style.display = 'flex';
     });
 
     closeManagePlayersBtn.addEventListener('click', () => {
-        managePlayersPopup.style.display = 'none';
+        playerManagementOverlay.style.display = 'none';
     });
 
-    managePlayersPopup.addEventListener('click', (event) => {
-        if (event.target === managePlayersPopup) {
-            managePlayersPopup.style.display = 'none';
+    playerManagementOverlay.addEventListener('click', (event) => {
+        if (event.target === playerManagementOverlay) {
+            playerManagementOverlay.style.display = 'none';
         }
     });
 
-    // Open Editor for New Player
-    addPlayerBtn.addEventListener('click', () => {
-        openPlayerEditor();
-    });
-
-    // Close Editor
-    closePlayerEditorBtn.addEventListener('click', closePlayerEditor);
-    cancelPlayerEditorBtn.addEventListener('click', closePlayerEditor);
-    playerEditorModal.addEventListener('click', (event) => {
-        if (event.target === playerEditorModal) {
-            closePlayerEditor();
-        }
-    });
-
-    // Handle Editor Form Submit
-    playerEditorForm.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const id = editorPlayerIdInput.value;
-        const name = editorPlayerNameInput.value.trim();
-        const selectedTeamIds = Array.from(editorTeamsContainer.querySelectorAll('input[type="checkbox"]:checked'))
-            .map(cb => parseInt(cb.value));
-
-        if (!name) return;
-
-        const playerDto = {
-            id: id ? parseInt(id) : 0,
-            name: name,
-            teamIds: selectedTeamIds
-        };
-
-        try {
-            let response;
-            if (id) {
-                // Update
-                response = await fetch(`${BASE_URL}/api/Players/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(playerDto)
-                });
-            } else {
-                // Create
-                response = await fetch(`${BASE_URL}/api/Players`, {
+    addPlayerBtn.addEventListener('click', async () => {
+        const name = prompt("Enter new player name:");
+        if (name && name.trim()) {
+            try {
+                const response = await fetch(`${BASE_URL}/api/Players`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(playerDto)
+                    body: JSON.stringify({ name: name.trim(), teamIds: [] })
                 });
-            }
 
-            if (response.ok) {
-                closePlayerEditor();
-                loadPlayersForManagement();
-                loadPlayers(); // Refresh main dropdown
-            } else {
-                throw new Error('Failed to save player');
+                if (response.ok) {
+                    loadPlayersForManagement();
+                    loadPlayers(); // Refresh main dropdown
+                } else {
+                    alert('Failed to add player');
+                }
+            } catch (error) {
+                console.error('Error adding player:', error);
             }
-        } catch (error) {
-            console.error('Error saving player:', error);
-            alert('Failed to save player');
         }
     });
-
-    function openPlayerEditor(player = null) {
-        editorPlayerIdInput.value = player ? player.id : '';
-        editorPlayerNameInput.value = player ? player.name : '';
-
-        // Populate Teams Checkboxes
-        editorTeamsContainer.innerHTML = '';
-        teams.forEach(team => {
-            const label = document.createElement('label');
-            label.classList.add('team-checkbox-label');
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.value = team.id;
-            if (player && player.teamIds && player.teamIds.includes(team.id)) {
-                checkbox.checked = true;
-            }
-
-            label.appendChild(checkbox);
-            label.appendChild(document.createTextNode(` ${team.name}`));
-            editorTeamsContainer.appendChild(label);
-        });
-
-        playerEditorModal.style.display = 'flex';
-    }
-
-    function closePlayerEditor() {
-        playerEditorModal.style.display = 'none';
-    }
 
     async function loadPlayersForManagement() {
         try {
+            // Load teams if not loaded
+            if (teams.length === 0) {
+                await loadTeams();
+            }
+
+            // Update Table Headers
+            // Keep "Name" header, remove existing team headers if any
+            while (playerTableHeaderRow.children.length > 1) {
+                playerTableHeaderRow.removeChild(playerTableHeaderRow.lastChild);
+            }
+
+            teams.forEach(team => {
+                const th = document.createElement('th');
+                th.textContent = team.name;
+                playerTableHeaderRow.appendChild(th);
+            });
+
+            // Load Players
             const response = await fetch(`${BASE_URL}/api/Players`);
             const players = await response.json();
 
-            const playerListContainer = document.getElementById('player-list-container');
-            playerListContainer.innerHTML = '';
+            playerTableBody.innerHTML = '';
             players.forEach(player => {
-                const playerItem = document.createElement('div');
-                playerItem.classList.add('player-item');
+                const tr = document.createElement('tr');
 
-                // Find team names
-                const playerTeamNames = player.teamIds
-                    ? player.teamIds.map(tid => teams.find(t => t.id === tid)?.name).filter(Boolean).join(', ')
-                    : '';
+                // Name Cell (Inline Edit)
+                const nameCell = document.createElement('td');
+                nameCell.textContent = player.name;
+                nameCell.classList.add('name-cell');
+                nameCell.addEventListener('click', () => enableInlineEdit(nameCell, player));
+                tr.appendChild(nameCell);
 
-                playerItem.innerHTML = `
-                <div class="player-info">
-                    <span class="player-name">${player.name}</span>
-                    <span class="player-teams">${playerTeamNames}</span>
-                </div>
-                <div class="player-actions">
-                    <button class="edit-player-btn icon-btn" data-player-id="${player.id}">✏️</button>
-                    <button class="delete-player-btn icon-btn" data-player-id="${player.id}">🗑️</button>
-                </div>
-            `;
-                playerListContainer.appendChild(playerItem);
-            });
+                // Team Cells (Toggle)
+                teams.forEach(team => {
+                    const teamCell = document.createElement('td');
+                    teamCell.classList.add('team-cell');
 
-            // Add event listeners for edit and delete buttons
-            playerListContainer.querySelectorAll('.edit-player-btn').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const playerId = parseInt(e.target.dataset.playerId);
-                    const player = players.find(p => p.id === playerId);
-                    openPlayerEditor(player);
+                    const isLinked = player.teamIds && player.teamIds.includes(team.id);
+                    if (isLinked) {
+                        teamCell.innerHTML = '<span class="team-check">✔</span>';
+                    }
+
+                    teamCell.addEventListener('click', () => toggleTeamAssignment(player, team.id));
+                    tr.appendChild(teamCell);
                 });
-            });
-            playerListContainer.querySelectorAll('.delete-player-btn').forEach(button => {
-                button.addEventListener('click', handleDeletePlayer);
+
+                playerTableBody.appendChild(tr);
             });
 
         } catch (error) {
@@ -452,25 +387,67 @@ function initializePopupAndListeners() {
         }
     }
 
-    // Remove old handleEditPlayer as we use the modal now
-    // async function handleEditPlayer(event) { ... } 
+    function enableInlineEdit(cell, player) {
+        if (cell.querySelector('input')) return; // Already editing
 
-    async function handleDeletePlayer(event) {
-        const playerId = event.target.dataset.playerId;
-        if (confirm('Are you sure you want to delete this player?')) {
-            try {
-                const response = await fetch(`${BASE_URL}/api/Players/${playerId}`, {
-                    method: 'DELETE',
-                });
-                if (response.ok) {
-                    loadPlayersForManagement();
-                    loadPlayers(); // Refresh main player dropdown
-                } else {
-                    throw new Error('Failed to delete player');
-                }
-            } catch (error) {
-                console.error('Error deleting player:', error);
+        const currentName = player.name;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentName;
+        input.classList.add('inline-edit-input');
+
+        cell.textContent = '';
+        cell.appendChild(input);
+        input.focus();
+
+        const save = async () => {
+            const newName = input.value.trim();
+            if (newName && newName !== currentName) {
+                player.name = newName;
+                await updatePlayer(player);
             }
+            // Re-render row or just cell text
+            cell.textContent = player.name;
+            // Ideally reload table to be safe or update local object
+            loadPlayers(); // Refresh main dropdown
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                input.blur();
+            }
+        });
+    }
+
+    async function toggleTeamAssignment(player, teamId) {
+        if (!player.teamIds) player.teamIds = [];
+
+        const index = player.teamIds.indexOf(teamId);
+        if (index === -1) {
+            player.teamIds.push(teamId);
+        } else {
+            player.teamIds.splice(index, 1);
+        }
+
+        await updatePlayer(player);
+        loadPlayersForManagement(); // Refresh table to show checkmark
+        loadPlayers(); // Refresh main dropdown
+    }
+
+    async function updatePlayer(player) {
+        try {
+            const response = await fetch(`${BASE_URL}/api/Players/${player.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(player)
+            });
+            if (!response.ok) {
+                throw new Error('Failed to update player');
+            }
+        } catch (error) {
+            console.error('Error updating player:', error);
+            alert('Failed to update player');
         }
     }
 
