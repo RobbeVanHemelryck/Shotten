@@ -9,5 +9,6 @@ public class MatchDto
     public string? Location { get; set; }
     public string? Name { get; set; } // Full event name from iCal
     public string? TeamName { get; set; }
+    public int? TeamId { get; set; }
     public ICollection<AttendanceDto>? Attendances { get; set; }
 }

@@ -13,6 +13,7 @@ public class ShottenContext : DbContext
     public DbSet<Player> Players { get; set; }
     public DbSet<Match> Matches { get; set; }
     public DbSet<Attendance> Attendances { get; set; }
+    public DbSet<Team> Teams { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -28,5 +29,14 @@ public class ShottenContext : DbContext
             .HasOne(a => a.Player)
             .WithMany()
             .HasForeignKey(a => a.PlayerId);
+
+        modelBuilder.Entity<Player>()
+            .HasMany(p => p.Teams)
+            .WithMany(t => t.Players);
+
+        modelBuilder.Entity<Match>()
+            .HasOne(m => m.Team)
+            .WithMany(t => t.Matches)
+            .HasForeignKey(m => m.TeamId);
     }
 }

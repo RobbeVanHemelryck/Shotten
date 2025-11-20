@@ -10,5 +10,7 @@ public class Match
     public string? Location { get; set; }
     public string? Name { get; set; } // Full event name from iCal
     public string? TeamName { get; set; }
+    public int? TeamId { get; set; }
+    public Team? Team { get; set; }
     public ICollection<Attendance>? Attendances { get; set; }
 }

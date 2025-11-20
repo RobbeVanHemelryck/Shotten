@@ -1,5 +1,6 @@
 
 using BE.Data;
+using BE.DTOs;
 using BE.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,9 +20,17 @@ public class PlayersController : ControllerBase
 
     // GET: api/Players
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Player>>> GetPlayers()
+    public async Task<ActionResult<IEnumerable<PlayerDto>>> GetPlayers()
     {
-        return await _context.Players.ToListAsync();
+        return await _context.Players
+            .Include(p => p.Teams)
+            .Select(p => new PlayerDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                TeamIds = p.Teams.Select(t => t.Id).ToList()
+            })
+            .ToListAsync();
     }
 
     // GET: api/Players/5
@@ -40,14 +49,29 @@ public class PlayersController : ControllerBase
 
     // PUT: api/Players/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutPlayer(int id, Player player)
+    public async Task<IActionResult> PutPlayer(int id, PlayerDto playerDto)
     {
-        if (id != player.Id)
+        if (id != playerDto.Id)
         {
             return BadRequest();
         }
 
-        _context.Entry(player).State = EntityState.Modified;
+        var player = await _context.Players.Include(p => p.Teams).FirstOrDefaultAsync(p => p.Id == id);
+
+        if (player == null)
+        {
+            return NotFound();
+        }
+
+        player.Name = playerDto.Name;
+
+        // Update teams
+        player.Teams?.Clear();
+        if (playerDto.TeamIds != null && playerDto.TeamIds.Any())
+        {
+            var teams = await _context.Teams.Where(t => playerDto.TeamIds.Contains(t.Id)).ToListAsync();
+            player.Teams = teams;
+        }
 
         try
         {
@@ -70,12 +94,27 @@ public class PlayersController : ControllerBase
 
     // POST: api/Players
     [HttpPost]
-    public async Task<ActionResult<Player>> PostPlayer(Player player)
+    public async Task<ActionResult<PlayerDto>> PostPlayer(PlayerDto playerDto)
     {
+        var player = new Player
+        {
+            Name = playerDto.Name,
+            Teams = new List<Team>()
+        };
+
+        if (playerDto.TeamIds != null && playerDto.TeamIds.Any())
+        {
+            var teams = await _context.Teams.Where(t => playerDto.TeamIds.Contains(t.Id)).ToListAsync();
+            player.Teams = teams;
+        }
+
         _context.Players.Add(player);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction("GetPlayer", new { id = player.Id }, player);
+        playerDto.Id = player.Id;
+        playerDto.TeamIds = player.Teams.Select(t => t.Id).ToList();
+
+        return CreatedAtAction("GetPlayer", new { id = player.Id }, playerDto);
     }
 
     // DELETE: api/Players/5

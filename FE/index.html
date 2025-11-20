@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Football Tracker</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <header>
         <h1>Aanduiden zo 👇</h1>
@@ -26,7 +28,9 @@
             </section>
         </div>
     </main>
+
     <script src="script.js"></script>
+
     <div id="attendance-popup" class="popup-overlay">
         <div class="popup-content">
             <h3>Update Your Attendance</h3>
@@ -42,12 +46,38 @@
         <div class="popup-content">
             <button class="close-popup-btn"></button>
             <div id="player-list-container" class="scrollable-list" role="list" aria-label="Player list"></div>
-            <div class="add-player-form">
-                <label for="new-player-name" class="visually-hidden">New player name</label>
-                <input type="text" id="new-player-name" placeholder="Enter new player name">
-                <button id="add-player-btn">+</button>
+            <div class="add-player-section">
+                <button id="add-player-btn" class="btn primary-btn">Add New Player</button>
             </div>
         </div>
     </div>
+
+    <!-- Player Editor Modal -->
+    <div id="player-editor-modal" class="popup-overlay" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2>Edit Player</h2>
+                <button class="close-popup-btn">&times;</button>
+            </div>
+            <form id="player-editor-form">
+                <input type="hidden" id="editor-player-id">
+                <div class="form-group">
+                    <label for="editor-player-name">Name:</label>
+                    <input type="text" id="editor-player-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Teams:</label>
+                    <div id="editor-teams-container" class="checkbox-group">
+                        <!-- Checkboxes will be populated here -->
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="cancel-player-editor-btn" class="btn secondary-btn">Cancel</button>
+                    <button type="submit" class="btn primary-btn">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </body>
+
 </html>

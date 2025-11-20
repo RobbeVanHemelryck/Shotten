@@ -19,9 +19,24 @@ public class MatchesController : ControllerBase
 
     // GET: api/Matches
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<MatchDto>>> GetMatches()
+    public async Task<ActionResult<IEnumerable<MatchDto>>> GetMatches([FromQuery] int? playerId)
     {
-        return await _context.Matches.Include(m => m.Attendances).ThenInclude(a => a.Player).OrderBy(m => m.Date)
+        var query = _context.Matches
+            .Include(m => m.Attendances)
+            .ThenInclude(a => a.Player)
+            .AsQueryable();
+
+        if (playerId.HasValue)
+        {
+            var playerTeamIds = await _context.Players
+                .Where(p => p.Id == playerId)
+                .SelectMany(p => p.Teams.Select(t => t.Id))
+                .ToListAsync();
+
+            query = query.Where(m => m.TeamId.HasValue && playerTeamIds.Contains(m.TeamId.Value));
+        }
+
+        return await query.OrderBy(m => m.Date)
             .Select(m => new MatchDto
             {
                 Id = m.Id,
@@ -29,6 +44,7 @@ public class MatchesController : ControllerBase
                 Location = m.Location,
                 Name = m.Name,
                 TeamName = m.TeamName,
+                TeamId = m.TeamId,
                 Attendances = m.Attendances.Select(a => new AttendanceDto
                 {
                     MatchId = a.MatchId,
@@ -57,6 +73,7 @@ public class MatchesController : ControllerBase
             Location = match.Location,
             Name = match.Name,
             TeamName = match.TeamName,
+            TeamId = match.TeamId,
             Attendances = match.Attendances.Select(a => new AttendanceDto
             {
                 MatchId = a.MatchId,
@@ -126,6 +143,7 @@ public class MatchesController : ControllerBase
             Location = match.Location,
             Name = match.Name,
             TeamName = match.TeamName,
+            TeamId = match.TeamId,
             Attendances = match.Attendances.Select(a => new AttendanceDto
             {
                 MatchId = a.MatchId,
