@@ -1,5 +1,5 @@
-// const BASE_URL = 'https://shotten-be.taltiko.com';
-const BASE_URL = 'http://localhost:5082';
+const BASE_URL = 'https://shotten-be.taltiko.com';
+// const BASE_URL = 'http://localhost:5082';
 
 const playerDropdown = document.getElementById('player-dropdown');
 const matchesListSection = document.getElementById('matches-list');
