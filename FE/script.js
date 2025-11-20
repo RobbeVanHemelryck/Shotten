@@ -290,7 +290,6 @@ function initializePopupAndListeners() {
     const managePlayersBtn = document.getElementById('manage-players-btn');
     const playerManagementOverlay = document.getElementById('player-management-overlay');
     const closeManagePlayersBtn = playerManagementOverlay.querySelector('.close-popup-btn');
-    const addPlayerBtn = document.getElementById('add-player-btn');
     const playerTableBody = document.getElementById('player-table-body');
     const playerTableHeaderRow = document.getElementById('player-table-header-row');
 
@@ -309,28 +308,6 @@ function initializePopupAndListeners() {
         }
     });
 
-    addPlayerBtn.addEventListener('click', async () => {
-        const name = prompt("Enter new player name:");
-        if (name && name.trim()) {
-            try {
-                const response = await fetch(`${BASE_URL}/api/Players`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name.trim(), teamIds: [] })
-                });
-
-                if (response.ok) {
-                    loadPlayersForManagement();
-                    loadPlayers(); // Refresh main dropdown
-                } else {
-                    alert('Failed to add player');
-                }
-            } catch (error) {
-                console.error('Error adding player:', error);
-            }
-        }
-    });
-
     async function loadPlayersForManagement() {
         try {
             // Load teams if not loaded
@@ -339,7 +316,6 @@ function initializePopupAndListeners() {
             }
 
             // Update Table Headers
-            // Keep "Name" header, remove existing team headers if any
             while (playerTableHeaderRow.children.length > 1) {
                 playerTableHeaderRow.removeChild(playerTableHeaderRow.lastChild);
             }
@@ -357,38 +333,124 @@ function initializePopupAndListeners() {
             playerTableBody.innerHTML = '';
             players.forEach(player => {
                 const tr = document.createElement('tr');
-
-                // Name Cell (Inline Edit)
-                const nameCell = document.createElement('td');
-                nameCell.textContent = player.name;
-                nameCell.classList.add('name-cell');
-                nameCell.addEventListener('click', () => enableInlineEdit(nameCell, player));
-                tr.appendChild(nameCell);
-
-                // Team Cells (Toggle)
-                teams.forEach(team => {
-                    const teamCell = document.createElement('td');
-                    teamCell.classList.add('team-cell');
-
-                    const isLinked = player.teamIds && player.teamIds.includes(team.id);
-                    if (isLinked) {
-                        teamCell.innerHTML = '<span class="team-check">✔</span>';
-                    }
-
-                    teamCell.addEventListener('click', () => toggleTeamAssignment(player, team.id));
-                    tr.appendChild(teamCell);
-                });
-
+                createPlayerRow(tr, player);
                 playerTableBody.appendChild(tr);
             });
+
+            // Add Placeholder Row
+            const placeholderTr = document.createElement('tr');
+            createPlaceholderRow(placeholderTr);
+            playerTableBody.appendChild(placeholderTr);
 
         } catch (error) {
             console.error('Error loading players for management:', error);
         }
     }
 
+    function createPlayerRow(tr, player) {
+        tr.innerHTML = ''; // Clear existing content if any
+
+        // Name Cell (Inline Edit)
+        const nameCell = document.createElement('td');
+        nameCell.textContent = player.name;
+        nameCell.classList.add('name-cell');
+        nameCell.addEventListener('click', () => enableInlineEdit(nameCell, player));
+        tr.appendChild(nameCell);
+
+        // Team Cells (Toggle)
+        teams.forEach(team => {
+            const teamCell = document.createElement('td');
+            teamCell.classList.add('team-cell');
+
+            const isLinked = player.teamIds && player.teamIds.includes(team.id);
+            if (isLinked) {
+                teamCell.innerHTML = '<span class="team-check">✔</span>';
+            }
+
+            teamCell.addEventListener('click', () => toggleTeamAssignment(player, team.id));
+            tr.appendChild(teamCell);
+        });
+    }
+
+    function createPlaceholderRow(tr) {
+        tr.innerHTML = '';
+        tr.classList.add('placeholder-row');
+
+        const nameCell = document.createElement('td');
+        nameCell.textContent = 'Add new player...';
+        nameCell.classList.add('name-cell', 'placeholder-text');
+        nameCell.style.fontStyle = 'italic';
+        nameCell.style.opacity = '0.7';
+
+        nameCell.addEventListener('click', () => enableNewPlayerInput(nameCell, tr));
+        tr.appendChild(nameCell);
+
+        // Empty team cells for placeholder
+        teams.forEach(() => {
+            const td = document.createElement('td');
+            tr.appendChild(td);
+        });
+    }
+
+    function enableNewPlayerInput(cell, tr) {
+        if (cell.querySelector('input')) return;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Enter name';
+        input.classList.add('inline-edit-input');
+
+        cell.textContent = '';
+        cell.appendChild(input);
+        input.focus();
+
+        const saveNewPlayer = async () => {
+            const name = input.value.trim();
+            if (name) {
+                try {
+                    const response = await fetch(`${BASE_URL}/api/Players`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, teamIds: [] })
+                    });
+
+                    if (response.ok) {
+                        const newPlayer = await response.json();
+                        // Convert this placeholder row to a real player row
+                        tr.classList.remove('placeholder-row');
+                        createPlayerRow(tr, newPlayer);
+
+                        // Add a new placeholder row at the bottom
+                        const newPlaceholder = document.createElement('tr');
+                        createPlaceholderRow(newPlaceholder);
+                        playerTableBody.appendChild(newPlaceholder);
+
+                        loadPlayers(); // Refresh main dropdown
+                    } else {
+                        alert('Failed to add player');
+                        // Revert to placeholder
+                        createPlaceholderRow(tr);
+                    }
+                } catch (error) {
+                    console.error('Error adding player:', error);
+                    createPlaceholderRow(tr);
+                }
+            } else {
+                // Revert if empty
+                createPlaceholderRow(tr);
+            }
+        };
+
+        input.addEventListener('blur', saveNewPlayer);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                input.blur();
+            }
+        });
+    }
+
     function enableInlineEdit(cell, player) {
-        if (cell.querySelector('input')) return; // Already editing
+        if (cell.querySelector('input')) return;
 
         const currentName = player.name;
         const input = document.createElement('input');
@@ -406,10 +468,8 @@ function initializePopupAndListeners() {
                 player.name = newName;
                 await updatePlayer(player);
             }
-            // Re-render row or just cell text
             cell.textContent = player.name;
-            // Ideally reload table to be safe or update local object
-            loadPlayers(); // Refresh main dropdown
+            loadPlayers();
         };
 
         input.addEventListener('blur', save);
@@ -431,8 +491,8 @@ function initializePopupAndListeners() {
         }
 
         await updatePlayer(player);
-        loadPlayersForManagement(); // Refresh table to show checkmark
-        loadPlayers(); // Refresh main dropdown
+        loadPlayersForManagement();
+        loadPlayers();
     }
 
     async function updatePlayer(player) {
@@ -458,5 +518,3 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPlayers();
     initializePopupAndListeners();
 });
-
-
