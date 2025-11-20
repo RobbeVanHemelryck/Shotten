@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>Aanduiden zo 👇</h1>
+        <button id="manage-players-btn">⚙️</button>
+    </header>
+    <main>
+        <div class="app-container">
+            <section id="player-selection">
+                <select id="player-dropdown">
+                    <option value="">-- Please select a player --</option>
+                </select>
+            </section>
+
+            <section id="matches-list" style="display: none;">
+                <div id="matches-container">
+                    <!-- Matches will be loaded here -->
+                </div>
+            </section>
+        </div>
+    </main>
+    <script src="script.js"></script>
+    <div id="attendance-popup" class="popup-overlay">
+        <div class="popup-content">
+            <h3>Update Your Attendance</h3>
+            <div class="popup-options">
+                <button class="popup-option-btn" data-status="Present">Present</button>
+                <button class="popup-option-btn" data-status="Maybe">Maybe</button>
+                <button class="popup-option-btn" data-status="NotPresent">Not Present</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manage-players-popup" class="popup-overlay">
+        <div class="popup-content">
+            <button class="close-popup-btn"></button>
+            <div id="player-list-container" class="scrollable-list" role="list" aria-label="Player list"></div>
+            <div class="add-player-form">
+                <label for="new-player-name" class="visually-hidden">New player name</label>
+                <input type="text" id="new-player-name" placeholder="Enter new player name">
+                <button id="add-player-btn">+</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
