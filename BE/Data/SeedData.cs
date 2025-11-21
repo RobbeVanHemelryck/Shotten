@@ -6,9 +6,6 @@ namespace BE.Data;
 
 public static class SeedData
 {
-    private static readonly string[] IcalUrls = { "https://www.lzvcup.be/icalendar.php?id=1319", "https://www.lzvcup.be/icalendar.php?id=2002" };
-    private static readonly string[] ValidTeamNames = { "Wille ma ni kunne", "FC Degradé" };
-
     public static async Task Initialize(IServiceProvider serviceProvider)
     {
         using (var context = new ShottenContext(
@@ -52,49 +49,11 @@ public static class SeedData
                 await context.SaveChangesAsync();
             }
 
-            // Seed Matches from iCal
+            // Seed Matches from iCal using the service
             if (!context.Matches.Any())
             {
-                var icalService = serviceProvider.GetRequiredService<IcalService>();
-                var allIcalEvents = new List<IcalService.IcalEvent>();
-
-                foreach (var url in IcalUrls)
-                {
-                    var icalEvents = await icalService.GetIcalEvents(url);
-                    allIcalEvents.AddRange(icalEvents);
-                }
-
-                foreach (var icalEvent in allIcalEvents)
-                {
-                    string teamName = "Unknown";
-                    Team? matchTeam = null;
-
-                    foreach (var validTeamName in ValidTeamNames)
-                    {
-                        if (icalEvent.Summary.Contains(validTeamName))
-                        {
-                            teamName = validTeamName;
-                            matchTeam = context.Teams.FirstOrDefault(t => t.Name == validTeamName);
-                            break;
-                        }
-                    }
-                    if (teamName != "Unknown" && matchTeam != null)
-                    {
-                        var match = new Match
-                        {
-                            Date = icalEvent.StartDate,
-                            Location = icalEvent.Location.Replace("\\", "").Replace(",", ",").Trim(),
-                            Name = icalEvent.Summary, // Use raw event name
-                            TeamName = teamName,
-                            Team = matchTeam
-                        };
-                        if (!context.Matches.Any(m => m.Date == match.Date && m.Name == match.Name && m.Location == match.Location && m.TeamName == match.TeamName))
-                        {
-                            context.Matches.Add(match);
-                        }
-                    }
-                }
-                await context.SaveChangesAsync();
+                var matchSyncService = serviceProvider.GetRequiredService<MatchSyncService>();
+                await matchSyncService.SyncMatchesAsync();
             }
         }
     }

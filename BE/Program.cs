@@ -14,6 +14,8 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 builder.Services.AddTransient<IcalService>();
+builder.Services.AddScoped<MatchSyncService>();
+builder.Services.AddHostedService<MatchSyncBackgroundService>();
 
 builder.Services.AddCors(options =>
 {
