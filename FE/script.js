@@ -37,7 +37,7 @@ async function loadPlayers() {
 }
 
 // Function to fetch matches and display them
-async function loadMatches() {
+async function loadMatches(shouldScroll = true) {
     if (!selectedPlayerId) {
         matchesContainer.innerHTML = '<p>Please select a player to view matches.</p>';
         matchesListSection.style.display = 'none';
@@ -152,7 +152,7 @@ async function loadMatches() {
         });
 
         // Scroll to the first future match card if it exists
-        if (firstFutureMatchCard) {
+        if (shouldScroll && firstFutureMatchCard) {
             // If the header is sticky, scrolling to the element's top will hide it behind the header.
             // Calculate an offset using the header height (if present) so the match is fully visible under the header.
             const headerEl = document.querySelector('header');
@@ -223,7 +223,7 @@ async function updateAttendance(matchId, playerId, status) {
 
         if (response.ok) {
             console.log('Attendance updated successfully.');
-            loadMatches(); // Reload matches to reflect the change
+            loadMatches(false); // Reload matches to reflect the change
         } else {
             const errorText = await response.text();
             throw new Error(`Failed to update attendance: ${response.status} ${errorText}`);
